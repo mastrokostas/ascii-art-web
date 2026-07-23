@@ -46,6 +46,12 @@ func (no_list_file_system NoListFileSystem) Open(requested_path string) (http.Fi
 	return opened_file, nil
 }
 
+// SecureHeaders wraps next_handler and attaches a set of security-related HTTP
+// response headers to every response before delegating to the wrapped handler.
+func SecureHeaders(next_handler http.Handler) http.Handler {
+	return secure_headers_handler{next_handler: next_handler}
+}
+
 // secure_headers_handler holds the handler that requests are passed on to
 // after the security headers have been set.
 type secure_headers_handler struct {
@@ -65,10 +71,4 @@ func (handler secure_headers_handler) ServeHTTP(response_writer http.ResponseWri
 	response_writer.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 	handler.next_handler.ServeHTTP(response_writer, request)
-}
-
-// SecureHeaders wraps next_handler and attaches a set of security-related HTTP
-// response headers to every response before delegating to the wrapped handler.
-func SecureHeaders(next_handler http.Handler) http.Handler {
-	return secure_headers_handler{next_handler: next_handler}
 }
