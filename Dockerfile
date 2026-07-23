@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN go build -o ascii-art-web-dockerize .
+RUN go build -o ascii-art-web .
 
 RUN useradd -u 1001 ascii-art-web
 
@@ -15,4 +15,4 @@ USER ascii-art-web
 
 EXPOSE 8080
 
-CMD [ "./ascii-art-web-dockerize" ]
+CMD [ "./ascii-art-web" ]
