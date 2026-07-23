@@ -1,0 +1,1043 @@
+/* =================================================
+   Liquid Glass — ASCII Art Web
+   Dark, premium, tactile. Frosted panels over a
+   deep gradient atmosphere.
+   ================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    /* Tell the browser this is a dark page so native controls — including the
+       file-type select's dropdown menu — render in a matching dark palette. */
+    color-scheme: dark;
+
+    --bg-base: #06050f;
+    --bg-deep: #02020a;
+
+    --violet: #a78bfa;
+    --indigo: #6366f1;
+    --cyan: #00d42a;
+    --sky: #7dd3fc;
+
+    /* Green accent — #0f0 matrix palette */
+    --accent: #00ff00;
+    --accent-cyan: #00d42a;
+    --glow-core: rgba(140, 255, 140, 0.95);
+    --glow-mid:  rgba(0, 255, 0, 0.55);
+    --glow-soft: rgba(0, 255, 0, 0.28);
+
+    --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.07));
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-top: rgba(255, 255, 255, 0.45);
+    --glass-shadow:
+        0 30px 80px -30px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --text: rgba(255, 255, 255, 0.94);
+    --text-muted: rgba(255, 255, 255, 0.58);
+    --text-faint: rgba(255, 255, 255, 0.35);
+
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-body: 'Geist', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+    padding: clamp(2rem, 6vw, 4.5rem) 1.25rem 5rem;
+    /* near-black, faint lift toward the centre — like the reference */
+    background: radial-gradient(1200px 820px at 50% 38%, #101015, #050506 72%);
+    background-attachment: fixed;
+}
+
+/* Fine grain texture for tactility */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 3px 3px;
+    opacity: 0.5;
+    z-index: 0;
+    mix-blend-mode: overlay;
+}
+
+/* Floating ambient orb */
+body::after {
+    content: "";
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    width: 70vw;
+    height: 70vw;
+    max-width: 900px;
+    max-height: 900px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(0, 255, 0, 0.06), transparent 60%);
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Matrix rain backdrop — fixed full-viewport canvas behind everything */
+#matrix {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* =====================  Header  ===================== */
+
+.header {
+    text-align: center;
+    margin-bottom: clamp(2rem, 5vw, 3.25rem);
+}
+
+.eyebrow {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 7.5vw, 4.6rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin-top: 1.4rem;
+    color: var(--text);
+}
+
+.title em {
+    font-style: italic;
+    background: linear-gradient(135deg, #7dff8f 0%, #00d42a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding: 0 0.05em;
+}
+
+.subtitle {
+    margin: 1rem auto 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 38ch;
+}
+
+/* =====================  Glass  ===================== */
+
+.glass {
+    position: relative;
+    isolation: isolate;
+    border-radius: 28px;
+    /* Transparent with a slight shine — soft light along the top edge */
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.06) 0%,
+        rgba(255, 255, 255, 0) 35%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1.5rem 3rem -1.5rem rgba(0, 0, 0, 0.8);
+    color: var(--text);
+}
+
+/* Keep all real card content above the two glow layers */
+.glass > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Gradient border — a green spotlight masked to a 1px frame, lit where the
+   cursor is. --x/--y are written by the single mousemove listener in
+   cursor-glow.js. "One event listener powers it all." */
+.glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 1px;
+    border-radius: inherit;
+    background: radial-gradient(220px circle at var(--x, 50%) var(--y, 50%),
+        var(--glow-core),
+        var(--glow-mid) 35%,
+        transparent 70%);
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+            mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+    pointer-events: none;
+}
+
+/* Soft ambient glow that bleeds in around the cursor */
+.glass::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: 0;
+    border-radius: inherit;
+    background: radial-gradient(320px circle at var(--x, 50%) var(--y, 50%),
+        var(--glow-soft),
+        transparent 60%);
+    opacity: 0;
+    transition: opacity 0.45s var(--ease);
+    pointer-events: none;
+}
+
+.glass:hover::before,
+.glass:hover::after {
+    opacity: 1;
+}
+
+.card {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+/* =====================  Form  ===================== */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.005em;
+}
+
+.label-num {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--text-faint);
+    padding: 0.18rem 0.5rem;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+}
+
+.label em {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1em;
+    color: var(--text-muted);
+    margin-left: 0.15rem;
+}
+
+/* =====================  Textarea  ===================== */
+
+.textarea {
+    width: 100%;
+    min-height: 130px;
+    resize: none;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text);
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid var(--glass-border);
+    outline: none;
+    transition:
+        border-color 0.3s var(--ease),
+        box-shadow 0.3s var(--ease),
+        background 0.3s var(--ease);
+}
+
+.textarea::placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+.textarea:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.textarea:focus {
+    border-color: rgba(0, 255, 0, 0.5);
+    background: rgba(0, 0, 0, 0.38);
+    box-shadow:
+        0 0 0 4px rgba(0, 255, 0, 0.1),
+        0 0 30px -10px rgba(0, 255, 0, 0.45);
+}
+
+/* =====================  Pill radios  ===================== */
+
+.pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    position: relative;
+}
+
+.pill-group input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pill {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.7rem 1.25rem;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s var(--ease);
+    position: relative;
+}
+
+.pill:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+}
+
+.pill-group input[type="radio"]:checked + .pill {
+    color: #eaffea;
+    background:
+        linear-gradient(135deg, rgba(0, 255, 0, 0.32), rgba(0, 230, 0, 0.18));
+    border-color: rgba(0, 255, 0, 0.5);
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 0, 0.18),
+        0 12px 30px -10px rgba(0, 255, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.pill-group input[type="radio"]:focus-visible + .pill {
+    outline: 2px solid rgba(0, 255, 0, 0.65);
+    outline-offset: 3px;
+}
+
+/* =====================  Mode switch (live / manual)  ===================== */
+
+.banner-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mode-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.mode-switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mode-track {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s var(--ease);
+    flex-shrink: 0;
+}
+
+.mode-thumb {
+    position: absolute;
+    top: 50%;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transform: translateY(-50%);
+    transition: all 0.3s var(--ease);
+}
+
+.mode-switch input:checked + .mode-track {
+    background:
+        linear-gradient(135deg, rgba(0, 255, 0, 0.32), rgba(0, 230, 0, 0.18));
+    border-color: rgba(0, 255, 0, 0.5);
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 0, 0.18),
+        0 8px 20px -8px rgba(0, 255, 0, 0.5);
+}
+
+.mode-switch input:checked + .mode-track .mode-thumb {
+    left: calc(100% - 19px);
+    background: #eaffea;
+}
+
+.mode-switch input:focus-visible + .mode-track {
+    outline: 2px solid rgba(0, 255, 0, 0.65);
+    outline-offset: 3px;
+}
+
+.mode-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-width: 3.6ch;
+    transition: color 0.3s var(--ease);
+}
+
+.mode-switch input:checked ~ .mode-text {
+    color: var(--text);
+}
+
+/* =====================  Color picker panel  ===================== */
+
+.color-panel {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.25rem;
+    align-items: center;
+    padding: 1.1rem;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+}
+
+#color-palette {
+    display: block;
+    border-radius: 12px;
+    cursor: crosshair;
+    box-shadow:
+        0 10px 30px -10px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.color-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.hex-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.hex-input {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    outline: none;
+    transition:
+        border-color 0.3s var(--ease),
+        box-shadow 0.3s var(--ease);
+}
+
+.hex-input::placeholder {
+    color: var(--text-faint);
+}
+
+.hex-input:focus {
+    border-color: rgba(0, 255, 0, 0.55);
+    box-shadow:
+        0 0 0 4px rgba(0, 255, 0, 0.1),
+        0 0 24px -8px rgba(0, 255, 0, 0.45);
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    line-height: 1.45;
+}
+
+/* =====================  Generate button  ===================== */
+
+.generate-btn {
+    width: 100%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    padding: 1.15rem 1.5rem;
+    font-family: inherit;
+    font-size: 0.98rem;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: #fff;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 50%),
+        linear-gradient(120deg, #0a8f1e 0%, #00ff00 50%, #00d42a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+        0 18px 40px -14px rgba(0, 150, 0, 0.55);
+    transition:
+        transform 0.3s var(--ease),
+        box-shadow 0.3s var(--ease);
+    position: relative;
+    overflow: hidden;
+}
+
+.generate-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.22) 50%,
+            transparent 70%);
+    transform: translateX(-110%);
+    transition: transform 0.85s var(--ease);
+    pointer-events: none;
+}
+
+.generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+        0 26px 60px -16px rgba(0, 255, 0, 0.6),
+        0 0 50px -12px rgba(0, 230, 0, 0.45);
+}
+
+.generate-btn:hover::after {
+    transform: translateX(110%);
+}
+
+.generate-btn:active {
+    transform: translateY(-1px);
+}
+
+.generate-btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.75) brightness(0.55);
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.generate-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.generate-btn:disabled:hover::after {
+    transform: translateX(-110%);
+}
+
+.generate-btn:disabled svg {
+    transform: none;
+}
+
+.generate-btn svg {
+    transition: transform 0.3s var(--ease);
+}
+
+.generate-btn:hover svg {
+    transform: translateX(3px);
+}
+
+/* =====================  Result card  ===================== */
+
+.result-card {
+    margin-top: 1.5rem;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    animation: rise 0.65s var(--ease) both;
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1.1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00d42a;
+    box-shadow: 0 0 14px rgba(0, 230, 0, 0.85);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 14px rgba(0, 230, 0, 0.85);
+    }
+
+    50% {
+        opacity: 0.75;
+        box-shadow: 0 0 22px rgba(0, 230, 0, 0.6);
+    }
+}
+
+.result-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* The ASCII art block — pixel-perfect monospace, scrolls horizontally.
+   --art-color is set on the result card by one line of JS (the picked color, or
+   `transparent` for plain output). The plate below derives a single contrasting
+   backing from it: light for dark art, dark for light art (flip at OKLCH
+   lightness 0.62). The source alpha gates it — a real color gives a 0.85 plate,
+   `transparent` (alpha 0) collapses to no plate, so plain output stays clean. */
+.result {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.15;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text);
+    padding: 1.1rem 1.2rem;
+    border-radius: 16px;
+    background-color: oklch(from var(--art-color, #0000) clamp(0, (0.62 - l) * 1000, 1) 0 0 / calc(alpha * 0.85));
+    transition: background-color 0.3s var(--ease);
+}
+
+.result::-webkit-scrollbar {
+    height: 8px;
+}
+
+.result::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.result::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.result::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* =====================  Download button  ===================== */
+
+/* Secondary action under the art. The Generate button owns the bold green
+   fill, so this one stays quiet — glass at rest, green as the cursor nears —
+   and the icon dips down on hover, in the direction of the download. */
+.download-form {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+}
+
+.download-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition:
+        transform 0.3s var(--ease),
+        color 0.3s var(--ease),
+        border-color 0.3s var(--ease),
+        background 0.3s var(--ease),
+        box-shadow 0.3s var(--ease);
+}
+
+.download-btn svg {
+    transition: transform 0.3s var(--ease);
+}
+
+.download-btn:hover {
+    color: #eaffea;
+    background: rgba(0, 255, 0, 0.06);
+    border-color: rgba(0, 255, 0, 0.45);
+    transform: translateY(-1px);
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 0, 0.12),
+        0 14px 30px -12px rgba(0, 255, 0, 0.5);
+}
+
+.download-btn:hover svg {
+    transform: translateY(2px);
+}
+
+.download-btn:active {
+    transform: translateY(0);
+}
+
+.download-btn:focus-visible {
+    outline: 2px solid rgba(0, 255, 0, 0.65);
+    outline-offset: 3px;
+}
+
+/* File-format select — a neutral glass pill matching the download button, with
+   a custom caret (native appearance stripped). */
+.format-dropdown {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    padding: 0.7rem 2.1rem 0.7rem 1rem;
+    background-color: rgba(255, 255, 255, 0.04);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='%23ffffff' stroke-opacity='0.55' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    transition:
+        color 0.3s var(--ease),
+        border-color 0.3s var(--ease),
+        background-color 0.3s var(--ease);
+}
+
+.format-dropdown:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.format-dropdown:focus-visible {
+    outline: 2px solid rgba(0, 255, 0, 0.65);
+    outline-offset: 3px;
+}
+
+/* The native option list can't be fully themed, but most engines honor these.
+   This is the no-JS fallback; format-dropdown.js replaces it with the custom
+   glass menu below when JavaScript runs. */
+.format-dropdown option {
+    background: #0d0d12;
+    color: #e8e8e8;
+}
+
+/* Custom file-format dropdown (progressive enhancement of .format-dropdown).
+   The trigger mirrors the download button's glass pill; the menu is a small
+   frosted, rounded panel like the cards. */
+.format-select {
+    position: relative;
+    display: inline-flex;
+}
+
+.format-trigger {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    transition:
+        color 0.3s var(--ease),
+        border-color 0.3s var(--ease),
+        background 0.3s var(--ease);
+}
+
+.format-trigger:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.format-trigger:focus-visible {
+    outline: 2px solid rgba(0, 255, 0, 0.65);
+    outline-offset: 3px;
+}
+
+.format-caret {
+    transition: transform 0.3s var(--ease);
+}
+
+.format-select.open .format-caret {
+    transform: rotate(180deg);
+}
+
+.format-menu {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 100%;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(30, 30, 38, 0.92), rgba(16, 16, 22, 0.94));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 20px 45px -18px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 20;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition:
+        opacity 0.25s var(--ease),
+        transform 0.25s var(--ease),
+        visibility 0s linear 0.25s;
+}
+
+.format-select.open .format-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition:
+        opacity 0.25s var(--ease),
+        transform 0.25s var(--ease);
+}
+
+.format-option {
+    padding: 0.5rem 0.95rem;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    outline: none;
+    transition:
+        color 0.2s var(--ease),
+        background 0.2s var(--ease);
+}
+
+.format-option + .format-option {
+    margin-top: 0.15rem;
+}
+
+.format-option:hover,
+.format-option:focus {
+    color: #eaffea;
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.format-option[aria-selected="true"] {
+    color: #eaffea;
+    background:
+        linear-gradient(135deg, rgba(0, 255, 0, 0.28), rgba(0, 230, 0, 0.16));
+}
+
+/* =====================  Error page  ===================== */
+
+.error-container {
+    min-height: calc(100vh - 8rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-card {
+    width: 100%;
+    padding: clamp(2.5rem, 6vw, 4rem) clamp(1.75rem, 5vw, 3rem);
+    text-align: center;
+}
+
+.error-card .eyebrow {
+    margin-bottom: 1.75rem;
+}
+
+.error-code {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(6rem, 19vw, 10.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, #7dff8f 0%, #00d42a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 60px rgba(0, 255, 0, 0.35));
+}
+
+.error-message {
+    margin: 0.75rem auto 0;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    line-height: 1.55;
+    max-width: 40ch;
+}
+
+.ghost-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 2.25rem;
+    padding: 0.85rem 1.6rem;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s var(--ease);
+}
+
+.ghost-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(0, 255, 0, 0.45);
+    box-shadow: 0 14px 30px -12px rgba(0, 255, 0, 0.45);
+    transform: translateY(-1px);
+}
+
+.ghost-btn .arrow {
+    display: inline-block;
+    transition: transform 0.3s var(--ease);
+}
+
+.ghost-btn:hover .arrow {
+    transform: translateX(-3px);
+}
+
+/* =====================  Responsive  ===================== */
+
+@media (max-width: 540px) {
+    .color-panel {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 0.9rem;
+    }
+
+    .color-meta {
+        width: 100%;
+        align-items: stretch;
+    }
+
+    #color-palette {
+        max-width: 100%;
+    }
+
+    .download-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

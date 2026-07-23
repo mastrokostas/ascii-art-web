@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Art Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/cursor-glow.js" defer></script>
+    <script src="/static/js/matrix.js" defer></script>
+    <script src="/static/js/color-picker.js" defer></script>
+    <script src="/static/js/live-preview.js" defer></script>
+    <script src="/static/js/format-dropdown.js" defer></script>
+</head>
+<body>
+    <canvas id="matrix" aria-hidden="true"></canvas>
+    <main class="container">
+        <header class="header">
+            <span class="eyebrow">// generative typography</span>
+            <h1 class="title">ASCII <em>Art</em> Generator</h1>
+            <p class="subtitle">Type something. Pick a banner. Choose a color.</p>
+        </header>
+
+        <section class="glass card">
+            <form action="/ascii-art" method="POST" class="form">
+                <div class="field">
+                    <label for="text" class="label">
+                        <span class="label-num">01</span>
+                        <span>Your text</span>
+                    </label>
+                    <textarea id="text" name="text" rows="5" cols="40" placeholder="Type your text here..." class="textarea">{{.Text}}</textarea>
+                </div>
+
+                <div class="field">
+                    <span class="label">
+                        <span class="label-num">02</span>
+                        <span>Banner style</span>
+                    </span>
+                    <div class="banner-row">
+                        <div class="pill-group" role="radiogroup">
+                            <input type="radio" id="standard" name="banner" value="standard" {{if or (eq .Banner "standard") (eq .Banner "")}}checked{{end}}>
+                            <label for="standard" class="pill">Standard</label>
+
+                            <input type="radio" id="shadow" name="banner" value="shadow" {{if eq .Banner "shadow"}}checked{{end}}>
+                            <label for="shadow" class="pill">Shadow</label>
+
+                            <input type="radio" id="thinkertoy" name="banner" value="thinkertoy" {{if eq .Banner "thinkertoy"}}checked{{end}}>
+                            <label for="thinkertoy" class="pill">Thinkertoy</label>
+                        </div>
+
+                        <!-- Render mode switch — checked = live preview as you type, unchecked = generate on button push -->
+                        <label class="mode-switch" title="Toggle live preview">
+                            <input type="checkbox" id="live-toggle" aria-label="Live preview" checked>
+                            <span class="mode-track"><span class="mode-thumb"></span></span>
+                            <span class="mode-text">Live</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="label">
+                        <span class="label-num">03</span>
+                        <span>Color <em>(optional)</em></span>
+                    </span>
+                    <div class="color-panel">
+                        <!-- Canvas renders a full HSL gradient — hue left to right, white overlay top, black overlay bottom -->
+                        <canvas id="color-palette" width="300" height="150"></canvas>
+
+                        <div class="color-meta">
+                            <span class="hex-label">Hex value</span>
+                            <!-- Hex input — synced both ways with the canvas -->
+                            <input type="text" id="hex-input" placeholder="#rrggbb" maxlength="7" class="hex-input" value="{{.Color}}">
+                            <span class="hint">Click the palette or type a hex value.</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden input submitted with the form — updated by both the canvas click and the hex input -->
+                    <input type="hidden" id="color" name="color" value="{{.Color}}">
+                </div>
+
+                <button type="submit" class="generate-btn">
+                    <span>Generate ASCII</span>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+        </section>
+
+        {{if .Result}}
+        <section class="glass result-card">
+            <header class="result-header">
+                <span class="dot"></span>
+                <span class="result-label">Output</span>
+            </header>
+            <pre class="result">{{.Result}}</pre>
+            <form action="/download" method="POST" class="download-form">
+                <textarea name="asciiText" style="display:none;">{{.RawResult}}</textarea>
+                <input type="hidden" name="color" value="{{.Color}}">
+                <select name="format" class="format-dropdown" aria-label="Download file format">
+                    <option value="txt">.txt</option>
+                    <option value="html">.html</option>
+                </select>
+                <button type="submit" class="download-btn">
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                        <path d="M7.5 2 L7.5 9.5 M4.5 6.5 L7.5 9.5 L10.5 6.5 M3 12.5 L12 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="download-label">Download .txt</span>
+                </button>
+            </form>
+        </section>
+        {{end}}
+    </main>
+</body>
+</html>

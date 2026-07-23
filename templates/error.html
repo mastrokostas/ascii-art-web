@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error {{.Code}}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/cursor-glow.js" defer></script>
+    <script src="/static/js/matrix.js" defer></script>
+</head>
+<body>
+    <canvas id="matrix" aria-hidden="true"></canvas>
+    <main class="container error-container">
+        <section class="glass error-card">
+            <span class="eyebrow">// signal lost</span>
+            <h1 class="error-code">{{.Code}}</h1>
+            <p class="error-message">{{.Message}}</p>
+            <a href="/" class="ghost-btn">
+                <span class="arrow">←</span>
+                <span>Back to generator</span>
+            </a>
+        </section>
+    </main>
+</body>
+</html>
