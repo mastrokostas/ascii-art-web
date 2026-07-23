@@ -155,6 +155,22 @@ func (handler secure_headers_handler) ServeHTTP(response_writer http.ResponseWri
 	response_writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 	// Disable powerful browser features the site does not use.
 	response_writer.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+	// Content-Security-Policy: keep every resource first-party ('self') so no
+	// injected or third-party script can run. The site loads all of its
+	// JavaScript from /static/js and has no inline <script>, so 'self' alone
+	// covers scripts. 'unsafe-inline' is allowed for styles only, because the
+	// colored ASCII output renders inline style="color:..." attributes.
+	response_writer.Header().Set("Content-Security-Policy",
+		"default-src 'self'; "+
+			"script-src 'self'; "+
+			"style-src 'self' 'unsafe-inline'; "+
+			"font-src 'self'; "+
+			"img-src 'self'; "+
+			"connect-src 'self'; "+
+			"form-action 'self'; "+
+			"frame-ancestors 'none'; "+
+			"base-uri 'self'; "+
+			"object-src 'none'")
 
 	handler.next_handler.ServeHTTP(response_writer, request)
 }
