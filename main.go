@@ -2,8 +2,11 @@ package main
 
 import (
 	"ascii-art/internal/handlers"
-	"log"
+	"ascii-art/middleware"
+	"log/slog"
 	"net/http"
+	"os"
+	"time"
 )
 
 func main() {
@@ -15,12 +18,34 @@ func main() {
 	// Route POST /ascii-art to the ascii art handler — processes the form and returns the result
 	mux.HandleFunc("/ascii-art", handlers.AsciiArtHandler)
 
-	// Route POST /download 
+	// Route POST /download
 	mux.HandleFunc("/download", handlers.DownloadHandler)
 
 	// Serve static files (css, js, etc.) from the static/ directory
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// Middleware prevents from listing the file system
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(middleware.NoListFileSystem{Fs: http.Dir("static")})))
 
-	log.Println("Server running at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	// TCP port the server listens on. Defaults to 8080 but can be overridden by
+	// setting the PORT environment variable.
+	port := "8080"
+	port_override := os.Getenv("PORT")
+	if port_override != "" {
+		port = port_override
+	}
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      middleware.SecureHeaders(mux),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	slog.Info("Listening on http://localhost:" + port)
+
+	server_error := server.ListenAndServe()
+	if server_error != nil {
+		slog.Error("server stopped", "error", server_error)
+		os.Exit(1)
+	}
 }
