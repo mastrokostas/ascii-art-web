@@ -23,7 +23,7 @@ var validBanners = map[string]bool{
 func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	// Only POST is accepted — any other method is a bad request
 	if r.Method != http.MethodPost {
-		renderError(w, http.StatusBadRequest, "Bad Request")
+		RenderError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
 
@@ -43,13 +43,13 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			return // empty body: the frontend removes the result area
 		}
-		renderError(w, http.StatusBadRequest, "Bad Request")
+		RenderError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
 
 	// banner must be one of the three known values
 	if !validBanners[banner] {
-		renderError(w, http.StatusBadRequest, "Bad Request")
+		RenderError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
 
@@ -57,9 +57,9 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	bannerMap, err := ascii.LoadBanner(os.DirFS("banners"), banner+".txt")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			renderError(w, http.StatusNotFound, "Banner not found")
+			RenderError(w, http.StatusNotFound, "Banner not found")
 		} else {
-			renderError(w, http.StatusInternalServerError, "Internal Server Error")
+			RenderError(w, http.StatusInternalServerError, "Internal Server Error")
 		}
 		return
 	}
@@ -74,7 +74,7 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	if color != "" {
 		validatedColor, err := ascii.ValidateHexColor(color)
 		if err != nil {
-			renderError(w, http.StatusBadRequest, "Invalid color value")
+			RenderError(w, http.StatusBadRequest, "Invalid color value")
 			return
 		}
 		display = ascii.RenderWithColor(lines, bannerMap, validatedColor)
@@ -93,7 +93,7 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	// The submitted inputs are echoed back via PageData so the form keeps state.
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		renderError(w, http.StatusNotFound, "Template not found")
+		RenderError(w, http.StatusNotFound, "Template not found")
 		return
 	}
 	// The download payload (RawResult) must always be plain text — the visible
@@ -112,6 +112,6 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 		RawResult: rawResult,
 	}
 	if err := tmpl.Execute(w, pageData); err != nil {
-		renderError(w, http.StatusInternalServerError, "Internal Server Error")
+		RenderError(w, http.StatusInternalServerError, "Internal Server Error")
 	}
 }

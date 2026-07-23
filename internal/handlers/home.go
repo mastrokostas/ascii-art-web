@@ -22,10 +22,12 @@ type PageData struct {
 	RawResult string
 }
 
-// renderError is a shared helper used by all handlers to write an error response.
+// RenderError is a shared helper used by all handlers to write an error response.
 // It sets the status code, then attempts to render error.html with the code and message.
 // If the error template itself is missing, it falls back to a plain http.Error.
-func renderError(w http.ResponseWriter, statusCode int, message string) {
+// It is exported so callers outside this package (e.g. the static file server's
+// custom 404 handler in main) can reuse the same error page.
+func RenderError(w http.ResponseWriter, statusCode int, message string) {
 	w.WriteHeader(statusCode)
 	tmpl, err := template.ParseFiles("templates/error.html")
 	if err != nil {
@@ -45,18 +47,18 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	// The default mux routes everything that doesn't match another handler to "/".
 	// We explicitly reject anything that isn't the exact root path.
 	if r.URL.Path != "/" {
-		renderError(w, http.StatusNotFound, "Page not found")
+		RenderError(w, http.StatusNotFound, "Page not found")
 		return
 	}
 
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		renderError(w, http.StatusNotFound, "Template not found")
+		RenderError(w, http.StatusNotFound, "Template not found")
 		return
 	}
 
 	// Execute the template with empty PageData — result area will not render
 	if err := tmpl.Execute(w, PageData{}); err != nil {
-		renderError(w, http.StatusInternalServerError, "Internal Server Error")
+		RenderError(w, http.StatusInternalServerError, "Internal Server Error")
 	}
 }

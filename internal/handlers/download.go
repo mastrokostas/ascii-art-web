@@ -11,7 +11,7 @@ import (
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	// Only POST is accepted — any other method is a bad request
 	if r.Method != http.MethodPost {
-		renderError(w, http.StatusBadRequest, "Bad Request")
+		RenderError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
 	asciiArt := r.FormValue("asciiText")

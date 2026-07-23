@@ -23,7 +23,16 @@ func main() {
 
 	// Serve static files (css, js, etc.) from the static/ directory
 	// Middleware prevents from listing the file system
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(middleware.NoListFileSystem{Fs: http.Dir("static")})))
+	static_file_server := http.StripPrefix("/static/", http.FileServer(middleware.NoListFileSystem{Fs: http.Dir("static")}))
+
+	// Wrap the static file server so its 404s render templates/error.html via the
+	// shared handlers.RenderError helper, instead of http.FileServer's built-in
+	// plain-text "404 page not found" response.
+	static_file_handler := middleware.InterceptNotFound(static_file_server, func(w http.ResponseWriter, r *http.Request) {
+		handlers.RenderError(w, http.StatusNotFound, "Page not found")
+	})
+
+	mux.Handle("/static/", static_file_handler)
 
 	// TCP port the server listens on. Defaults to 8080 but can be overridden by
 	// setting the PORT environment variable.
