@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ascii-art/internal/handlers"
-	"ascii-art/middleware"
+	"ascii-art-web/internal/handlers"
+	"ascii-art-web/middleware"
 	"log/slog"
 	"net/http"
 	"os"

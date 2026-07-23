@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"ascii-art/internal/ascii"
+	"ascii-art-web/internal/ascii"
 	"fmt"
 	"html"
 	"net/http"
