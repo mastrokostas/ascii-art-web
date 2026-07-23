@@ -1,6 +1,6 @@
 FROM golang:1.26.0
 
-LABEL org.opencontainers.image.title="Ascii Art Web Dockerize" \
+LABEL org.opencontainers.image.title="Ascii Art Web" \
       org.opencontainers.image.description="Runs a dockerized version of the Ascii Art Web project"
 
 WORKDIR /app

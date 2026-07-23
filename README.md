@@ -1,12 +1,10 @@
 <div style="display:flex; justify-content:center;">
-<pre style="overflow-x:auto; overflow-y:hidden; white-space:pre; max-width:100%;"><font color="#007D9C">                      _   _                           _                                _                                                     _               __   _   _         
-                     (_) (_)                         | |                              | |                                                   | |             / _| (_) | |        
-  __ _   ___    ___   _   _             __ _   _ __  | |_           __      __   ___  | |__              ___  __  __  _ __     ___    _ __  | |_           | |_   _  | |   ___  
- / _` | / __|  / __| | | | |  ______   / _` | | '__| | __|  ______  \ \ /\ / /  / _ \ | '_ \   ______   / _ \ \ \/ / | '_ \   / _ \  | '__| | __|  ______  |  _| | | | |  / _ \ 
-| (_| | \__ \ | (__  | | | | |______| | (_| | | |    | |_  |______|  \ V  V /  |  __/ | |_) | |______| |  __/  >  <  | |_) | | (_) | | |    | |_  |______| | |   | | | | |  __/ 
- \__,_| |___/  \___| |_| |_|           \__,_| |_|     \__|            \_/\_/    \___| |_.__/            \___| /_/\_\ | .__/   \___/  |_|     \__|          |_|   |_| |_|  \___| 
-                                                                                                                     | |                                                        
-                                                                                                                     |_|                                                        </font></pre>
+<pre style="overflow-x:auto; overflow-y:hidden; white-space:pre; max-width:100%;"><font color="#007D9C">                   _  _                       _                            _     
+                  (_)(_)                     | |                          | |    
+  __ _  ___   ___  _  _           __ _  _ __ | |_         __      __  ___ | |__  
+ / _` |/ __| / __|| || | ______  / _` || '__|| __| ______ \ \ /\ / / / _ \| '_ \ 
+| (_| |\__ \| (__ | || ||______|| (_| || |   | |_ |______| \ V  V / |  __/| |_) |
+ \__,_||___/ \___||_||_|         \__,_||_|    \__|          \_/\_/   \___||_.__/ </font></pre>
 </div>
 
 <div align="center">A web-based application written in Go that allows users to generate large ASCII block letters through a graphical interface in the browser, with color, a live preview that renders as you type, and a one-click export of the result to a file.</div>
@@ -44,13 +42,13 @@ http://localhost:8080
 Build the image from the project's root directory:
 
 ```bash
-docker build -t ascii-art-web-export-file .
+docker build -t ascii-art-web .
 ```
 
 Run the container, mapping the container's port `8080` to the host:
 
 ```bash
-docker run -p 8080:8080 ascii-art-web-export-file
+docker run -p 8080:8080 ascii-art-web
 ```
 
 Then open http://localhost:8080 in your browser.
