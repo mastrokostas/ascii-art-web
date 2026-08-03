@@ -231,3 +231,10 @@ Anything other than `html` in `format` falls through to the plain-text download,
 
 - Stergios Fourlataras
 - Konstantinos Koletsis
+
+## 📜 License
+
+**All Rights Reserved.** This project is published for demonstration and portfolio
+purposes only. It is **not** open source, and no permission is granted to use, copy,
+modify, or distribute it. See [LICENSE](LICENSE) for the full terms and
+[kostasstewie@gmail.com](mailto:kostasstewie@gmail.com) for licensing enquiries.

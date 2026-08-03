@@ -1,21 +1,64 @@
-MIT License
-
 Copyright (c) 2026 Stergios Fourlataras, Konstantinos Koletsis
+All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software, including its source code, documentation, and associated
+files (the "Software"), is the proprietary property of the copyright
+holders named above.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. NO LICENSE GRANTED
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   No permission is granted to any person to use, copy, modify, merge,
+   publish, distribute, sublicense, create derivative works of, or sell
+   copies of the Software, in whole or in part, by any means, without the
+   prior written permission of the copyright holders.
+
+2. PUBLIC VISIBILITY IS NOT A LICENSE
+
+   The Software is published in a public repository solely for the purposes
+   of demonstration, portfolio review, and evaluation. The ability to view
+   or download the Software does not grant any license to it. Any copying
+   permitted automatically by the hosting platform's terms of service (for
+   example, GitHub's fork feature) is limited strictly to what those terms
+   require and conveys no further rights.
+
+3. THIRD-PARTY MATERIAL
+
+   The banner files in `banners/` (`shadow.txt`, `standard.txt`,
+   `thinkertoy.txt`) and the self-hosted web fonts in `static/fonts/`
+   (Geist, Instrument Serif, JetBrains Mono) are third-party material and
+   are not covered by this notice. They remain subject to their own
+   respective licenses.
+
+   The three font families are each licensed under the SIL Open Font
+   License, Version 1.1. Their full license texts are distributed with the
+   fonts, as that license requires:
+
+     - static/fonts/OFL-Geist.txt
+       Copyright 2024 The Geist Project Authors
+       (https://github.com/vercel/geist-font.git)
+
+     - static/fonts/OFL-InstrumentSerif.txt
+       Copyright 2022 The Instrument Serif Project Authors
+       (https://github.com/Instrument/instrument-serif)
+
+     - static/fonts/OFL-JetBrainsMono.txt
+       Copyright 2020 The JetBrains Mono Project Authors
+       (https://github.com/JetBrains/JetBrainsMono)
+
+4. CONTRIBUTIONS
+
+   Any contribution submitted for inclusion in the Software is submitted on
+   the understanding that copyright in it is assigned to the copyright
+   holders, who may license it under these terms.
+
+5. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For licensing enquiries, contact: kostasstewie@gmail.com

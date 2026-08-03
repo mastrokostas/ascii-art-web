@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-03
+
+### Changed
+- Relicensed the project from the MIT License to a proprietary **All Rights
+  Reserved** notice in `LICENSE`, ahead of making the repository public. MIT
+  granted everyone the right to use, sell, and sublicense the code, which is not
+  the intent for this project. The MIT-licensed code was never publicly
+  distributed — the repository was private for its whole history — so no third
+  party ever received the MIT grant and the relicense is clean.
+- The new `LICENSE` grants no rights at all, states explicitly that public
+  visibility on GitHub is not a license, excludes the third-party banner files
+  and web fonts from the copyright claim, and keeps the MIT warranty disclaimer
+  verbatim as clause 5.
+
+### Added
+- `## 📜 License` section at the end of `README.md`, so the restriction is
+  visible to anyone who reads only the README.
+- SIL Open Font License texts for the three self-hosted font families:
+  `static/fonts/OFL-Geist.txt`, `static/fonts/OFL-InstrumentSerif.txt`, and
+  `static/fonts/OFL-JetBrainsMono.txt`. The fonts were previously shipped as
+  bare `.woff2` files with no license text, which the OFL does not permit —
+  it requires the license to be distributed with the Font Software. Each file
+  is the upstream text copied verbatim from the `google/fonts` repository,
+  retaining its own copyright line. `LICENSE` clause 3 now names all three.
+
 ## 2026-07-23
 
 ### Changed
