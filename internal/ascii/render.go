@@ -37,8 +37,16 @@ func Render(lines []string, bannerMap map[rune][]string) string {
 	return outputBuilder.String()
 }
 
-// RenderWithColor works like Render but wraps each row in an HTML span
-// with the given hex color applied as an inline style.
+// RenderWithColor works like Render but wraps each row in an HTML span carrying
+// the .art-line class. The class takes its color from the --art-color custom
+// property, which the page sets from the validated hex color — the color is
+// deliberately not written as an inline style="color:..." attribute, because
+// that would force the Content-Security-Policy to allow 'unsafe-inline' styles.
+//
+// hexColor is therefore no longer written into the markup, but it is kept in the
+// signature: callers pass the value they validated, and an empty string here
+// still means "no color was chosen".
+//
 // The returned string is HTML and must be passed to the template as template.HTML.
 func RenderWithColor(lines []string, bannerMap map[rune][]string, hexColor string) string {
 	var outputBuilder strings.Builder
@@ -61,11 +69,12 @@ func RenderWithColor(lines []string, bannerMap map[rune][]string, hexColor strin
 				}
 			}
 
-			// Wrap the completed row in a span with the hex color.
-			// The row is HTML-escaped first: some banner glyphs contain literal
-			// '<' and '>' characters, which would otherwise corrupt the markup.
+			// Wrap the completed row in a span that picks up the art color from
+			// CSS. The row is HTML-escaped first: some banner glyphs contain
+			// literal '<' and '>' characters, which would otherwise corrupt the
+			// markup.
 			escapedRow := html.EscapeString(rowBuilder.String())
-			outputBuilder.WriteString(fmt.Sprintf("<span style=\"color: %s\">%s</span>\n", hexColor, escapedRow))
+			outputBuilder.WriteString(fmt.Sprintf("<span class=\"art-line\">%s</span>\n", escapedRow))
 		}
 	}
 

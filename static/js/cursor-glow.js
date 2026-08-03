@@ -22,11 +22,12 @@
     if (location.search.includes('pose')) {
         const card = document.querySelector('.glass');
         if (!card) return;
+        // The .glow-posed rule lives in style.css. Building a <style> element
+        // here instead would be blocked by the Content-Security-Policy, which no
+        // longer allows inline styles. Setting custom properties through the
+        // CSSOM below is unaffected by that policy.
         card.classList.add('glow-posed');
         card.style.setProperty('--x', '92%');
         card.style.setProperty('--y', '24%');
-        const s = document.createElement('style');
-        s.textContent = '.glow-posed::before,.glow-posed::after{opacity:1 !important;transition:none !important;}';
-        document.head.appendChild(s);
     }
 })();

@@ -2,12 +2,33 @@ package handlers
 
 import (
 	"ascii-art-web/internal/ascii"
+	"ascii-art-web/middleware"
 	"errors"
+	"html"
 	"html/template"
 	"net/http"
 	"os"
 	"strings"
 )
+
+// maxRequestBodyBytes caps how much of a POST body the handlers will read. Go's
+// own limit for urlencoded forms is 10 MB, which is far more than this form ever
+// needs and far more than is safe here: the renderer expands every input
+// character into eight rows of banner glyph, so the response is roughly sixty
+// times the size of the input. Bounding the input bounds that amplification.
+const maxRequestBodyBytes = 64 * 1024
+
+// maxTextLength caps the number of bytes accepted in the text field itself, so
+// an oversized value is rejected with a clear message rather than being read and
+// only then found to be unreasonable.
+const maxTextLength = 5000
+
+// maxDownloadBodyBytes caps the /download body. It has to be much larger than
+// maxRequestBodyBytes because what gets posted there is the *rendered* art, not
+// the source text: a full maxTextLength input on a single line expands to a bit
+// under 300 KB, so this leaves comfortable headroom above the largest art this
+// server will ever produce while still bounding the request.
+const maxDownloadBodyBytes = 512 * 1024
 
 // validBanners is the set of accepted banner names.
 // Any banner value not in this map is rejected with a 400.
@@ -27,6 +48,9 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Refuse to read an oversized body at all, before any form parsing happens.
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
 	// Requests from the live-preview fetch() carry this header. They receive just
 	// the rendered ASCII fragment; classic form submissions (JavaScript disabled)
 	// still get a full HTML page, so the form keeps working without JavaScript.
@@ -35,6 +59,12 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	text := r.FormValue("text")
 	banner := r.FormValue("banner")
 	color := r.FormValue("color")
+
+	// Reject text that would expand into an unreasonably large render.
+	if len(text) > maxTextLength {
+		RenderError(w, http.StatusRequestEntityTooLarge, "Text is too long")
+		return
+	}
 
 	// For the live preview an empty textarea simply means "clear the output" —
 	// it is not the error condition that an empty classic submission is.
@@ -70,21 +100,34 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If a color was submitted, validate it and render with color.
 	// If absent or invalid, fall back to plain render.
+	// validatedColor is the normalised #rrggbb value, or empty when no color was
+	// submitted. Everything downstream echoes this rather than the raw input, so
+	// only a value that passed validation is ever written back into the page.
+	var validatedColor string
 	var display string
 	if color != "" {
-		validatedColor, err := ascii.ValidateHexColor(color)
+		normalisedColor, err := ascii.ValidateHexColor(color)
 		if err != nil {
 			RenderError(w, http.StatusBadRequest, "Invalid color value")
 			return
 		}
+		validatedColor = normalisedColor
 		display = ascii.RenderWithColor(lines, bannerMap, validatedColor)
 	} else {
 		display = ascii.Render(lines, bannerMap)
 	}
 
 	// Live preview: return only the rendered fragment for the frontend to inject.
+	// The colored render really is HTML (a span per row); the plain render is
+	// literal text whose glyphs contain real '<' characters, so it is typed as
+	// text/plain to describe honestly what is being sent. The frontend reads the
+	// body with response.text() and is not affected by the distinction.
 	if isLivePreview {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if color != "" {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		} else {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		}
 		w.Write([]byte(display))
 		return
 	}
@@ -104,12 +147,26 @@ func AsciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	if color != "" {
 		rawResult = ascii.Render(lines, bannerMap)
 	}
+
+	// display is already-escaped markup on the colored path, but literal text on
+	// the plain one — and several banner glyphs (B, K, X, k, x, < and &) contain
+	// a real '<'. Since Result is declared template.HTML the template will not
+	// escape it, so the plain case has to be escaped here or the browser parses
+	// those glyphs as tags and swallows the art. rawResult is deliberately left
+	// alone: it is the download payload and must stay plain text.
+	displayHTML := template.HTML(display)
+	if color == "" {
+		displayHTML = template.HTML(html.EscapeString(display))
+	}
+
 	pageData := PageData{
 		Text:      text,
 		Banner:    banner,
-		Color:     color,
-		Result:    template.HTML(display),
+		Color:     validatedColor,
+		ColorCSS:  template.CSS(validatedColor),
+		Result:    displayHTML,
 		RawResult: rawResult,
+		Nonce:     middleware.NonceFromContext(r.Context()),
 	}
 	if err := tmpl.Execute(w, pageData); err != nil {
 		RenderError(w, http.StatusInternalServerError, "Internal Server Error")

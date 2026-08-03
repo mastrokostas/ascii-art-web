@@ -14,6 +14,10 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		RenderError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
+	// asciiText is whatever the client posted — it is echoed back as the file and
+	// is never re-derived on the server, so the body needs a cap of its own.
+	r.Body = http.MaxBytesReader(w, r.Body, maxDownloadBodyBytes)
+
 	asciiArt := r.FormValue("asciiText")
 	if asciiArt == "" {
 		http.Error(w, "No content to download", http.StatusBadRequest)

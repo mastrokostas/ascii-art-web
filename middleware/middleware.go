@@ -1,9 +1,43 @@
 package middleware
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"os"
 )
+
+// nonce_context_key is the private key type used to store the per-request CSP
+// nonce on the request context. It is its own named type (rather than a plain
+// string) so no other package can collide with the key by accident.
+type nonce_context_key struct{}
+
+// NonceFromContext returns the per-request Content-Security-Policy nonce that
+// SecureHeaders placed on the request context, or an empty string when the
+// request did not pass through that middleware. Handlers hand this value to
+// their templates so an inline <style> block can be marked as trusted.
+func NonceFromContext(request_context context.Context) string {
+	nonce, is_string := request_context.Value(nonce_context_key{}).(string)
+	if !is_string {
+		return ""
+	}
+
+	return nonce
+}
+
+// generate_nonce returns 16 cryptographically random bytes, base64 encoded, for
+// use as a single request's CSP nonce. A fresh value per request is what makes
+// the nonce meaningful: a reused nonce would let injected markup claim it.
+func generate_nonce() string {
+	nonce_bytes := make([]byte, 16)
+
+	// crypto/rand.Read is documented never to return an error and to always
+	// fill the slice completely, so there is no failure case to handle here.
+	rand.Read(nonce_bytes)
+
+	return base64.StdEncoding.EncodeToString(nonce_bytes)
+}
 
 // NoListFileSystem wraps an http.FileSystem to disable automatic directory
 // listings. When a directory is requested it is only served if that directory
@@ -155,15 +189,31 @@ func (handler secure_headers_handler) ServeHTTP(response_writer http.ResponseWri
 	response_writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 	// Disable powerful browser features the site does not use.
 	response_writer.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+	// HTTP Strict-Transport-Security tells browsers to reach this origin over
+	// HTTPS only. It is opt-in through an environment variable because sending
+	// it from a plain-HTTP origin (local development on localhost) pins that
+	// origin to HTTPS in the developer's browser and makes it unreachable.
+	// Enable it only where TLS actually terminates in front of the app.
+	if os.Getenv("ENABLE_HSTS") == "true" {
+		response_writer.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+	}
+
+	// A fresh nonce for this request, used to authorise the one inline <style>
+	// block the JavaScript-disabled page needs for the user's chosen art color.
+	nonce := generate_nonce()
+
 	// Content-Security-Policy: keep every resource first-party ('self') so no
 	// injected or third-party script can run. The site loads all of its
 	// JavaScript from /static/js and has no inline <script>, so 'self' alone
-	// covers scripts. 'unsafe-inline' is allowed for styles only, because the
-	// colored ASCII output renders inline style="color:..." attributes.
+	// covers scripts. style-src carries a per-request nonce rather than
+	// 'unsafe-inline': the only inline style left is the single <style> block
+	// that carries the picked color into the page on the no-JavaScript path,
+	// and it is tagged with this nonce. Every other style lives in style.css.
 	response_writer.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
 			"script-src 'self'; "+
-			"style-src 'self' 'unsafe-inline'; "+
+			"style-src 'self' 'nonce-"+nonce+"'; "+
 			"font-src 'self'; "+
 			"img-src 'self'; "+
 			"connect-src 'self'; "+
@@ -172,5 +222,11 @@ func (handler secure_headers_handler) ServeHTTP(response_writer http.ResponseWri
 			"base-uri 'self'; "+
 			"object-src 'none'")
 
-	handler.next_handler.ServeHTTP(response_writer, request)
+	// Publish the nonce on the request context so the handlers downstream can
+	// stamp it onto the inline <style> block they render.
+	request_with_nonce := request.WithContext(
+		context.WithValue(request.Context(), nonce_context_key{}, nonce),
+	)
+
+	handler.next_handler.ServeHTTP(response_writer, request_with_nonce)
 }

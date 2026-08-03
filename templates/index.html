@@ -6,6 +6,16 @@
     <title>ASCII Art Web</title>
     <link rel="stylesheet" href="/static/css/fonts.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    {{if .Color}}
+    {{/* The one inline style on the page: it carries the user's chosen art color
+         into CSS as a custom property, which .art-line and .result then read.
+         It exists for the no-JavaScript path — live-preview.js sets the same
+         property through the CSSOM, which CSP does not police. The nonce is what
+         lets style-src stay free of 'unsafe-inline'; .Color has already passed
+         ascii.ValidateHexColor, and the template.CSS type keeps html/template's
+         CSS filter from rewriting it to ZgotmplZ. */}}
+    <style nonce="{{.Nonce}}">.result-card { --art-color: {{.ColorCSS}}; }</style>
+    {{end}}
     <script src="/static/js/cursor-glow.js" defer></script>
     <script src="/static/js/matrix.js" defer></script>
     <script src="/static/js/color-picker.js" defer></script>
@@ -95,7 +105,7 @@
             </header>
             <pre class="result">{{.Result}}</pre>
             <form action="/download" method="POST" class="download-form">
-                <textarea name="asciiText" style="display:none;">{{.RawResult}}</textarea>
+                <textarea name="asciiText" class="hidden-field">{{.RawResult}}</textarea>
                 <input type="hidden" name="color" value="{{.Color}}">
                 <select name="format" class="format-dropdown" aria-label="Download file format">
                     <option value="txt">.txt</option>

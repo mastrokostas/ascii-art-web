@@ -685,6 +685,29 @@ body::after {
    backing from it: light for dark art, dark for light art (flip at OKLCH
    lightness 0.62). The source alpha gates it — a real color gives a 0.85 plate,
    `transparent` (alpha 0) collapses to no plate, so plain output stays clean. */
+/* Each row of colored art. The color arrives through --art-color rather than an
+   inline style="color:..." attribute, so the Content-Security-Policy can refuse
+   inline styles outright. Plain (uncolored) output has no spans at all and keeps
+   the .result color below. */
+.art-line {
+    color: var(--art-color);
+}
+
+/* Hides the textarea that carries the download payload. It was an inline
+   style="display:none" until the CSP stopped allowing inline styles. */
+.hidden-field {
+    display: none;
+}
+
+/* Freezes the cursor glow on the first card for ?pose screenshot captures.
+   cursor-glow.js only adds the class — the rule lives here so no <style>
+   element has to be built at runtime, which the CSP would block. */
+.glow-posed::before,
+.glow-posed::after {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
 .result {
     font-family: var(--font-mono);
     font-size: 0.78rem;

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -348,5 +349,138 @@ func TestDownloadHandler_HtmlPlainHasNoPlate(t *testing.T) {
 
 	if body := rr.Body.String(); strings.Contains(body, "oklch") {
 		t.Errorf("plain export should not have a plate: %q", body)
+	}
+}
+
+// ===================  Output escaping and input limits  ===================
+
+// extractRenderedArt pulls the contents of the <pre class="result"> block from
+// the rendered index page — the art exactly as the browser would receive it.
+func extractRenderedArt(t *testing.T, body string) string {
+	t.Helper()
+	open := strings.Index(body, `<pre class="result">`)
+	if open < 0 {
+		t.Fatal("result <pre> not found")
+	}
+	start := open + len(`<pre class="result">`)
+	end := strings.Index(body[start:], "</pre>")
+	if end < 0 {
+		t.Fatal("result <pre> not closed")
+	}
+	return body[start : start+end]
+}
+
+// TestAsciiArtHandler_PlainResultIsEscaped checks the full-page (no-JavaScript)
+// render escapes plain art. Several standard-banner glyphs — B, K, X, k, x, <
+// and & — contain a literal '<'. Result is declared template.HTML, so nothing
+// escapes it downstream; if the handler stops escaping, the browser parses those
+// glyphs as tags and silently swallows part of the art.
+func TestAsciiArtHandler_PlainResultIsEscaped(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", "X")
+	form.Set("banner", "standard")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %v, want 200", rr.Code)
+	}
+
+	art := extractRenderedArt(t, rr.Body.String())
+	if !strings.Contains(art, "&lt;") {
+		t.Errorf("expected escaped '<' in plain art, got: %q", art)
+	}
+	if strings.Contains(art, "<") {
+		t.Errorf("raw '<' reached the page and will be parsed as a tag: %q", art)
+	}
+}
+
+// TestAsciiArtHandler_ColoredResultUsesClass checks that colored art carries the
+// color through the .art-line class rather than an inline style attribute. An
+// inline style would force the Content-Security-Policy back to 'unsafe-inline'.
+func TestAsciiArtHandler_ColoredResultUsesClass(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", "X")
+	form.Set("banner", "standard")
+	form.Set("color", "#ff0000")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %v, want 200", rr.Code)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, `<span class="art-line">`) {
+		t.Errorf("colored art missing .art-line spans: %q", extractRenderedArt(t, body))
+	}
+	if strings.Contains(body, `style="color:`) {
+		t.Errorf("inline color style present, CSP would need 'unsafe-inline': %q", body)
+	}
+}
+
+// TestAsciiArtHandler_DownloadPayloadKeepsRawGlyphs guards the escaping fix from
+// being "simplified" into ascii.Render itself. The same render feeds the hidden
+// download field, and the downloaded .txt must contain the real '<' glyph rather
+// than the entity &lt;. The template escapes the textarea body on the way out, so
+// unescape before asserting — that is what the browser submits back.
+func TestAsciiArtHandler_DownloadPayloadKeepsRawGlyphs(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", "X")
+	form.Set("banner", "standard")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %v, want 200", rr.Code)
+	}
+
+	payload := html.UnescapeString(extractDownloadPayload(t, rr.Body.String()))
+	if !strings.Contains(payload, "<") {
+		t.Errorf("download payload lost its literal '<' glyph — art must not be escaped: %q", payload)
+	}
+}
+
+// TestAsciiArtHandler_RejectsOversizedText checks that text beyond maxTextLength
+// is refused. The renderer expands every character into eight rows of glyph, so
+// an unbounded field is a memory amplifier.
+func TestAsciiArtHandler_RejectsOversizedText(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", strings.Repeat("A", maxTextLength+1))
+	form.Set("banner", "standard")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("oversized text: got %v, want %v", rr.Code, http.StatusRequestEntityTooLarge)
+	}
+}
+
+// TestAsciiArtHandler_AcceptsMaxLengthText checks the boundary from the other
+// side, so the limit cannot silently drift down and start rejecting valid input.
+func TestAsciiArtHandler_AcceptsMaxLengthText(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", strings.Repeat("A", maxTextLength))
+	form.Set("banner", "standard")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("text at the limit: got %v, want 200", rr.Code)
+	}
+}
+
+// TestAsciiArtHandler_RejectsOversizedBody checks that a body larger than
+// maxRequestBodyBytes is cut off by MaxBytesReader before any form parsing, so
+// the request fails rather than being read into memory in full.
+func TestAsciiArtHandler_RejectsOversizedBody(t *testing.T) {
+	form := url.Values{}
+	form.Set("text", strings.Repeat("A", maxRequestBodyBytes+1))
+	form.Set("banner", "standard")
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(AsciiArtHandler).ServeHTTP(rr, postForm(t, "/ascii-art", form))
+
+	if rr.Code == http.StatusOK {
+		t.Errorf("oversized body was accepted: got %v, want a failure status", rr.Code)
 	}
 }

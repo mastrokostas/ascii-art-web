@@ -77,6 +77,40 @@ If you need to perform troubleshooting or administrative tasks inside the runnin
 docker exec -u 0 -it <container_name> /bin/bash
 ```
 
+### Response headers and the Content-Security-Policy
+
+`middleware.SecureHeaders` attaches `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy` and a Content-Security-Policy to every response.
+
+The policy keeps every resource first-party — `default-src 'self'`, with `frame-ancestors 'none'`,
+`base-uri 'self'` and `object-src 'none'`. `style-src` carries a **per-request nonce** rather than
+`'unsafe-inline'`: 16 random bytes from `crypto/rand`, generated fresh for each request, published
+on the request context and read back by the handlers through `middleware.NonceFromContext`.
+
+That means no inline `style` attribute can appear in markup the browser parses. The art color is
+applied through the `--art-color` custom property instead — `live-preview.js` sets it via the
+CSSOM (which CSP does not police), and the JavaScript-disabled path uses the single nonced
+`<style>` block in `index.html`. Colored rows carry the `.art-line` class rather than
+`style="color:…"`.
+
+`Strict-Transport-Security` is opt-in through the `ENABLE_HSTS=true` environment variable. It is
+off by default on purpose: sending HSTS from a plain-HTTP development origin pins that origin to
+HTTPS in your browser and makes it unreachable. Enable it only where TLS terminates in front of
+the app.
+
+### Input handling
+
+The inputs are validated, not sanitized — stripping characters would corrupt legitimate ASCII art.
+`banner` must match a fixed allow-list, `color` must pass `ascii.ValidateHexColor` (`#rrggbb`), and
+`text` is capped at 5,000 bytes with the request body capped at 64 KB (512 KB on `/download`, which
+carries rendered art rather than source text). The caps matter because the renderer expands every
+input character into eight rows of banner glyph, roughly a sixtyfold amplification.
+
+Output is escaped at the point of display. Several `standard` banner glyphs — `B`, `K`, `X`, `k`,
+`x`, `<` and `&` — contain a literal `<`, so the rendered art is HTML-escaped before it reaches the
+page. The download payload is deliberately *not* escaped: it must stay plain text, and a regression
+test pins that distinction in place.
+
 ## 🔌 Endpoints
 
 - **GET /** — serves the main HTML page: the text input, banner radios, color picker, and the live/manual switch.

@@ -34,7 +34,10 @@
                 '</header>' +
                 '<pre class="result"></pre>' +
                 '<form action="/download" method="POST" class="download-form">' +
-                '<textarea name="asciiText" style="display:none;"></textarea>' +
+                // .hidden-field rather than style="display:none": this markup is
+                // parsed by the browser, so an inline style here is blocked by
+                // the Content-Security-Policy. Mirrors templates/index.html.
+                '<textarea name="asciiText" class="hidden-field"></textarea>' +
                 '<input type="hidden" name="color" value="">' +
                 '<select name="format" class="format-dropdown" aria-label="Download file format">' +
                 '<option value="txt">.txt</option>' +

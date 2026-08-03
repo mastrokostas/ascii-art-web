@@ -2,6 +2,53 @@
 
 ## 2026-08-03
 
+### Fixed
+- Plain (uncolored) ASCII art is now HTML-escaped before it reaches the page.
+  `ascii.RenderWithColor` escaped its output but `ascii.Render` did not, and the
+  result was assigned to `PageData.Result`, which is declared `template.HTML` and
+  therefore not escaped by the template either. Seven `standard` banner glyphs —
+  `B`, `K`, `X`, `k`, `x`, `<` and `&` — contain a literal `<`, so the browser
+  parsed those as tags and swallowed part of the art. Only the full-page
+  (JavaScript-disabled) path was affected; the live preview already routed plain
+  output through `textContent`.
+  The escaping is applied in `AsciiArtHandler`, **not** inside `ascii.Render`:
+  the same render feeds the hidden download field, where the art must stay plain
+  text. `TestAsciiArtHandler_DownloadPayloadKeepsRawGlyphs` pins that down.
+- `RenderError` no longer writes the response status before parsing the error
+  template. On a parse failure it fell through to `http.Error`, which writes a
+  status of its own, producing a "superfluous response.WriteHeader call" log.
+
+### Security
+- `style-src` in the Content-Security-Policy no longer allows `'unsafe-inline'`.
+  It now carries a per-request nonce (16 bytes from `crypto/rand`, base64), put
+  on the request context by `SecureHeaders` and read back by handlers through the
+  new `middleware.NonceFromContext`. Removing `'unsafe-inline'` required moving
+  every inline style out of parsed markup:
+  - `ascii.RenderWithColor` emits `<span class="art-line">` instead of
+    `<span style="color:…">`; the color arrives through the `--art-color` custom
+    property that `style.css` already used.
+  - The hidden download textarea uses a new `.hidden-field` class instead of
+    `style="display:none"`, in both `templates/index.html` and the copy that
+    `live-preview.js` builds at runtime.
+  - `cursor-glow.js` no longer constructs a `<style>` element for the `?pose`
+    screenshot aid; that rule moved verbatim into `style.css` and the script only
+    adds the `.glow-posed` class.
+  - Custom properties set through the CSSOM (`element.style.setProperty`) are
+    untouched — CSP does not govern the CSSOM, only parsed markup.
+  The no-JavaScript path still needs to apply a user-chosen color, so
+  `index.html` carries one nonced `<style>` block, emitted only when a color was
+  submitted. Its value is passed as `template.CSS` so `html/template`'s CSS
+  filter does not rewrite the validated color to `ZgotmplZ`.
+- Request bodies are now capped with `http.MaxBytesReader` — 64 KB on
+  `/ascii-art`, 512 KB on `/download`, which carries rendered art rather than
+  source text — and the `text` field is capped at 5,000 bytes. Go's own limit for
+  urlencoded forms is 10 MB, which was far too generous here: the renderer
+  expands each input character into eight rows of glyph, so a 10 MB body produced
+  roughly 640 MB of string in memory.
+- `Strict-Transport-Security` is sent when `ENABLE_HSTS=true`. It is opt-in so
+  that local plain-HTTP development is unaffected — HSTS from a localhost origin
+  pins it to HTTPS in the developer's browser.
+
 ### Changed
 - Relicensed the project from the MIT License to a proprietary **All Rights
   Reserved** notice in `LICENSE`, ahead of making the repository public. MIT
@@ -24,6 +71,13 @@
   it requires the license to be distributed with the Font Software. Each file
   is the upstream text copied verbatim from the `google/fonts` repository,
   retaining its own copyright line. `LICENSE` clause 3 now names all three.
+- `middleware/middleware_test.go`: covers the CSP nonce (present in the policy,
+  absent of `'unsafe-inline'`, matching the value handlers read from the context,
+  and freshly generated per request) and the HSTS opt-in switch.
+- Handler tests for the escaping fix and the new input limits, including
+  `TestAsciiArtHandler_PlainResultIsEscaped` and the boundary pair
+  `TestAsciiArtHandler_RejectsOversizedText` /
+  `TestAsciiArtHandler_AcceptsMaxLengthText`.
 
 ## 2026-07-23
 
