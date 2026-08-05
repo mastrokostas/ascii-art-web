@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-08-05
+
+### Added
+- `nginx/nginx.conf`, the reverse-proxy configuration that the `nginx/`
+  container image copies over the stock server block. It is what makes the
+  image added on 2026-08-04 do anything useful:
+  - A `listen 80` server that answers every hostname (`server_name _`) with a
+    `301` to `https://$host$request_uri`, so a plain-HTTP request is redirected
+    rather than proxied and never reaches the app.
+  - A `listen 443 ssl` server terminating TLS with a Cloudflare Origin
+    certificate, read from `/etc/nginx/certs/cloudflare-origin.pem` and
+    `/etc/nginx/certs/cloudflare-origin.key`. Those files are deliberately not
+    in the repository; they are supplied at run time through a bind mount.
+  - A single `location /` block. The prefix match on `/` catches every path and
+    proxies to `http://app:8080`, because the Go mux in `main.go` does its own
+    routing and nginx needs no per-route rules. `app` is the Docker network
+    alias of the application container and `8080` is the port `main.go`
+    defaults to.
+  - Four forwarding headers on that proxied request: `Host`, so the app sees
+    the hostname the browser actually asked for instead of `app:8080`;
+    `X-Real-IP` with the client address; `X-Forwarded-For`, appending the
+    client to any existing chain; and `X-Forwarded-Proto`, which reports
+    `https` even though the inward hop to the app is plain HTTP.
+  With TLS now terminating in front of the application, the condition for
+  `ENABLE_HSTS=true` (added 2026-08-03) is met, so the Go container can send
+  `Strict-Transport-Security` in this deployment.
+
+## 2026-08-04
+
+### Added
+- `nginx/` directory holding the reverse proxy that fronts the Go server. Its
+  `Dockerfile` builds on `nginx:1.27` — pinned to a minor rather than
+  `nginx:latest` — and copies `nginx.conf` to
+  `/etc/nginx/conf.d/default.conf`, the path the stock image already includes,
+  which replaces the built-in "Welcome to nginx" server block. `nginx.conf`
+  was committed empty here and written the following day.
+- A favicon: `static/favicon/favicon.svg`, linked from both
+  `templates/index.html` and `templates/error.html` with
+  `<link rel="icon" type="image/svg+xml" href="/static/favicon/favicon.svg">`.
+  The icon is drawn as inline SVG rather than shipped as a raster set — a
+  rounded `#0D0D0D` square behind a bold monospace `A` and an underscore bar,
+  both `#00FF41` under an SVG `drop-shadow` filter for the terminal glow — so
+  one file stays sharp at every size. It is served from `/static`, which the
+  existing `img-src 'self'` directive already covers, so the
+  Content-Security-Policy needed no change.
+
 ## 2026-08-03
 
 ### Fixed
@@ -95,6 +141,19 @@
   `<link>` tags in `templates/index.html` and `templates/error.html`. This
   keeps every resource first-party so the Content-Security-Policy needs no
   external hosts.
+- Renamed the Go module from `ascii-art` to `ascii-art-web` in `go.mod`, so the
+  module path matches the project. The import paths in `main.go`,
+  `internal/handlers/asciiart.go` and `internal/handlers/download.go` were
+  updated to match; no other code changed.
+- Dropped the leftover task names from the build artifacts. The Docker image's
+  `org.opencontainers.image.title` label is now "Ascii Art Web" (was "Ascii Art
+  Web Dockerize"), and the compiled binary is `ascii-art-web` (was
+  `ascii-art-web-dockerize`) in both the `go build -o` flag and the `CMD` that
+  runs it.
+- `README.md` follows the same rename: the Docker section builds and runs
+  `ascii-art-web` instead of `ascii-art-web-export-file`, and the ASCII banner
+  at the top of the file — which spelled out the old task name — was
+  regenerated from the shorter one.
 
 ### Added
 - `middleware.InterceptNotFound` in `middleware/middleware.go`: wraps a handler
