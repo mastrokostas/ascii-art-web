@@ -1,0 +1,28 @@
+services:
+
+  app:
+    image: ghcr.io/mastrokostas/ascii-art-web:latest
+    # restart: always brings the container back after a crash, and after a
+    # reboot once the Docker daemon starts on boot — no host-level unit needed.
+    restart: always
+    # No "ports:" — the app is never published to the host. nginx reaches it
+    # as app:8080 over the private Compose network below. "expose" is metadata
+    # only; containers on the same network can reach each other regardless.
+    expose:
+      - "8080"
+
+  nginx: 
+    image: ghcr.io/mastrokostas/ascii-art-web/nginx:latest
+    restart: always
+    # Start the app first so the proxy target exists when nginx starts.
+    depends_on:
+      - app
+    # The only published port on the box: HTTP on 80, reached by Cloudflare.
+    ports:
+      - "80:80"
+      # Added port 443 for HTTPS
+      - "443:443"
+
+    volumes:
+      # SSL certificates path
+      - ./certs:/etc/nginx/certs:ro
