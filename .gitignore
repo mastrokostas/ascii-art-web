@@ -1,0 +1,7 @@
+# TLS certificates — these live on the server only and must never be committed
+certs/
+*.pem
+*.key
+
+# Compiled binary produced by "go build -o ascii-art-web ."
+ascii-art-web
