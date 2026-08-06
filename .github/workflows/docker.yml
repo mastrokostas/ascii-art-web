@@ -34,3 +34,26 @@ jobs:
 
             - name: Run unit tests
               run: go test ./...
+
+    build-and-push:
+        #Make this job wait, and only start if test has passed
+        needs: test
+        # This is a fresh runner, so machine and checkout are set all over again
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Set up Docker Buildx
+              # Installs Buildx, Docker's newer builder
+              uses: docker/setup-buildx-action@v4
+
+            - name: Log in to GHCR
+              #Login to GitHub Container Registry
+              uses: docker/login-action@v4
+              with:
+                registry: ghcr.io
+                # github.actor is the username of whoever triggered the run
+                username: ${{ github.actor }}
+                # Automatic per-run token, GitHube injects it, this is where packages: write permission gets used
+                password: ${{ secrets.GITHUB_TOKEN }}
