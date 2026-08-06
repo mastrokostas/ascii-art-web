@@ -1,5 +1,84 @@
 # Changelog
 
+## 2026-08-06
+
+### Added
+- `internal/ascii/ascii_test.go`, the first test file for the rendering
+  package (17 tests). It also settles a misleading coverage reading: `go test
+  -cover ./...` counts only the statements a package's *own* test files
+  execute, so `internal/ascii` reported **0.0%** even though the handler tests
+  drove `LoadBanner`, `Render`, `RenderWithColor` and `ValidateHexColor` on
+  every POST. Run as `go test -coverpkg=./... ./...` the same suite already
+  reported those four functions at 81–90%. The new file makes the figure honest
+  rather than incidental:
+  - `ValidateHexColor`: the valid case, lowercase normalisation, whitespace
+    trimming, a missing `#`, wrong digit counts (`#fff`, `#ff88000`, `#`), and
+    the per-character hex loop (`#gg0000`, `#12345z`, `#ff 800`, `#-f0000`).
+    That last group was previously unreachable — the handler tests use
+    `"notacolor"` and `"bogus"`, which fail on the `#` prefix check and never
+    enter the digit loop.
+  - `LoadBanner`: the block-to-rune mapping starting at ASCII 32, asserted
+    against a synthetic `fstest.MapFS` banner so a parser bug cannot hide behind
+    the real files; the read-error path, checked with `errors.Is(err,
+    fs.ErrNotExist)` because `AsciiArtHandler` splits 404 from 500 on exactly
+    that; and all three shipped banner files, each asserted to yield 95
+    characters with at least eight rows apiece.
+  - `Render` and `RenderWithColor`: exact output for a known input, pinning both
+    the row order and the left-to-right character order; the blank-line branch in
+    both functions; unmapped runes being skipped rather than panicking on the
+    row lookup; the `.art-line` span wrapping; `<`, `&` and `>` escaping; and
+    that neither an inline `style=` attribute nor the raw color ever reaches the
+    markup, which is what keeps `'unsafe-inline'` out of the CSP (2026-08-03).
+- 14 tests in `middleware/middleware_test.go`, covering the three features that
+  had none. `NoListFileSystem.Open` and `InterceptNotFound` were at 0%, which
+  meant the directory-listing suppression — a security control — was entirely
+  unexercised:
+  - `NoListFileSystem.Open`: a directory without `index.html` refused as
+    `os.ErrNotExist`, one with `index.html` served, regular files served,
+    missing paths propagated, and the stat-failure branch reached through a fake
+    `http.File`, including the assertion that the handle is closed before the
+    error returns. An end-to-end check through `http.FileServer` confirms the
+    resulting 404 body does not leak the name of a file inside the hidden
+    directory.
+  - `InterceptNotFound`: the 404 body replaced by only the custom page, the
+    stale `text/plain` header cleared, 200 and 500 both forwarded untouched with
+    the fallback never invoked, and the two middlewares composed the way
+    `main.go` composes them.
+  - `not_found_interceptor.Write`: the discarded write is reported back as fully
+    successful, so `http.FileServer` does not log a short write on every miss.
+  - Plus the `NonceFromContext` path for a request that never passed through
+    `SecureHeaders`, and the fixed hardening headers.
+- 14 tests in `internal/handlers/handlers_test.go`:
+  - The live-preview path (`X-Requested-With: fetch`) had no coverage at all.
+    Empty text now asserts 200 with an empty body — "clear the output", not the
+    400 a classic submission gets; a plain preview asserts a `text/plain`
+    fragment whose `<` glyphs stay literal; a colored preview asserts a
+    `text/html` fragment carrying `.art-line` spans; both assert a fragment
+    rather than a full page. A table check confirms the preview path still
+    enforces the banner, color and length validation.
+  - `/download` rejections: `GET` → 400, and an empty `asciiText` → 400 with no
+    `Content-Disposition` offered.
+  - The on-disk failure paths, reached with `t.Chdir` into an empty temporary
+    directory (it restores the previous directory and refuses to run in a
+    parallel test, so the switch cannot leak into the rest of the package):
+    `RenderError`'s `http.Error` fallback when `templates/error.html` is
+    missing, tested both in isolation and through `HomeHandler`; a missing
+    banner file → 404; an *unreadable* banner → 500, produced by standing a
+    directory where `standard.txt` belongs so the read fails with something
+    other than `ErrNotExist`; and a template parse failure, with the banner
+    deliberately copied in so the render gets far enough to reach it.
+  - Template execution failures, driven by a `failing_response_writer` whose
+    every write errors the way a client that hung up mid-response would. Both
+    `HomeHandler` and `AsciiArtHandler` are asserted to settle on a 500.
+
+  All three packages now report 100% statement coverage (from 0.0%, 36.2% and
+  76.5%); across the module `-coverpkg=./...` rises from 43.8% to 91.4%. The
+  remainder is `main.go`, which stays at 0% because `main()` is never invoked
+  by a test — reaching it needs the mux and server construction extracted into
+  a separate function, a production-code change that was left alone. 73 tests
+  pass under `-race` and under repeated `-shuffle=on` runs, so the `t.Chdir`
+  tests are order-independent.
+
 ## 2026-08-05
 
 ### Added
