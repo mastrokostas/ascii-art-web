@@ -78,6 +78,53 @@
   a separate function, a production-code change that was left alone. 73 tests
   pass under `-race` and under repeated `-shuffle=on` runs, so the `t.Chdir`
   tests are order-independent.
+- `.github/workflows/docker.yml`, the delivery pipeline. It runs on every push
+  to `main` and on manual `workflow_dispatch`, and holds four jobs chained with
+  `needs:` so each one gates the next — a failing unit test never reaches the
+  registry, and an image that does not answer HTTP never reaches the server.
+  The workflow's own token is scoped to `contents: read` and `packages: write`,
+  which is the minimum needed to check out the code and publish to GHCR:
+  - `test`: checks out, installs Go with `go-version-file: go.mod` so the
+    toolchain follows the module rather than a pinned duplicate that can drift,
+    and sets `cache: false` because the project has no dependencies outside the
+    standard library and therefore nothing to cache. Runs `go vet ./...` then
+    `go test ./...`. Note that this is the bare test command: it takes no
+    coverage flag, so the suite described above gates the pipeline on pass/fail
+    only. A coverage threshold added here would need `-coverpkg=./...`, for the
+    reason given in the first entry.
+  - `build-and-push`: builds both images with Buildx and pushes them to GHCR,
+    authenticating as `github.actor` with the automatic per-run
+    `GITHUB_TOKEN` — the token the `packages: write` permission above exists
+    for. `docker/metadata-action` computes the tags for each image separately:
+    `latest`, guarded by `enable={{is_default_branch}}` so only `main` can move
+    it, plus `type=sha` so every build stays addressable by the commit it came
+    from. The app image builds from the repository root; the nginx image builds
+    from `./nginx`, which has to be the context because that `Dockerfile` does
+    `COPY nginx.conf`. Layer caching uses the Actions cache with
+    `scope=app` and `scope=nginx` kept separate, so the two images do not evict
+    each other's layers, and `mode=max` so intermediate layers are kept too.
+  - `smoke-test`: pulls the image that was just published and runs it on the
+    runner with `8081:8080`, rather than testing a locally built artifact that
+    might differ from what shipped. It polls for up to ten seconds for the
+    container to start listening, then asserts that `/` returns 200 and that an
+    unknown path returns 404 — the second check exercises `HomeHandler`'s
+    explicit rejection of anything that is not the exact root path, and
+    distinguishes a real 404 from a crash. The container is removed at the end
+    so the step's exit code is the only signal.
+  - `deploy`: copies `docker-compose.yml` to the server over SCP — the only
+    file sent, because the images come from GHCR and the TLS certificates
+    already live on the box — then over SSH logs in to GHCR, runs
+    `docker compose pull` and `docker compose up -d` (which recreates only the
+    containers whose image actually changed), logs out again so credentials are
+    not left behind in `~/.docker/config.json`, and prunes the replaced images
+    so the disk does not fill. Host, user and key come from repository secrets;
+    `envs:` forwards `GHCR_TOKEN` and `GHCR_ACTOR` into the SSH session, which
+    they would not otherwise reach.
+- `.gitignore`, added so the deployment secrets cannot be committed by accident.
+  It ignores `certs/`, `*.pem` and `*.key` — the Cloudflare Origin certificate
+  and private key that `nginx.conf` reads from `/etc/nginx/certs` (2026-08-05)
+  and that `docker-compose.yml` bind-mounts from `./certs` — and the compiled
+  `ascii-art-web` binary that `go build -o` leaves in the working tree.
 
 ## 2026-08-05
 
@@ -105,6 +152,25 @@
   With TLS now terminating in front of the application, the condition for
   `ENABLE_HSTS=true` (added 2026-08-03) is met, so the Go container can send
   `Strict-Transport-Security` in this deployment.
+- `docker-compose.yml`, which runs the two images together on the server. Both
+  services pull from GHCR (`ascii-art-web` and `ascii-art-web/nginx`, the exact
+  names the pipeline added on 2026-08-06 publishes) and both carry
+  `restart: always`, so they come back after a crash and after a reboot once
+  the Docker daemon starts — no host-level unit is needed.
+  - The `app` service publishes **no** ports. It is reachable only as
+    `app:8080` over the private Compose network, which is the hostname
+    `nginx.conf` proxies to, so the Go server cannot be reached directly on the
+    box and every request has to pass through the proxy. The `expose: 8080`
+    entry is documentation only — containers on a shared network reach each
+    other regardless.
+  - The `nginx` service is the only one bound to the host, on `80` and `443`,
+    and mounts `./certs` read-only at `/etc/nginx/certs`, which is where
+    `nginx.conf` reads the Cloudflare Origin pair from. `depends_on: app` starts
+    the proxy target first.
+  - The `app` service declares no `environment:` block, so `ENABLE_HSTS` is not
+    actually set in the committed file; TLS still terminates at nginx either
+    way, but the header described above is not being sent until that variable is
+    added.
 
 ## 2026-08-04
 
