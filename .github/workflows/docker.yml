@@ -151,3 +151,53 @@ jobs:
 
             # Clean up so the step's exit code is the only thing that matters.
             docker rm -f ascii_art_web_smoke
+
+    deploy:
+        # Only runs if the smoke test passed, which only runs if the images
+        # were pushed, which only runs if the unit tests passed.
+        needs: smoke-test
+        runs-on: ubuntu-latest
+        steps:
+        # Needed because we send docker-compose.yml from the repo to the server.
+        - name: Checkout
+          uses: actions/checkout@v6
+
+        - name: Copy compose file to the server
+          uses: appleboy/scp-action@v0.1.7
+          with:
+            # All four values come from repository secrets, set in
+            # Settings > Secrets and variables > Actions.
+            host: ${{ secrets.DEPLOY_HOST }}
+            username: ${{ secrets.DEPLOY_USER }}
+            key: ${{ secrets.DEPLOY_SSH_KEY }}
+            # The only file that goes to the box. The images come from GHCR,
+            # the certs are already sitting in ~/ascii-art-web/certs.
+            source: docker-compose.yml
+            target: /home/ubuntu/ascii-art-web
+
+        - name: Pull and restart over SSH
+          uses: appleboy/ssh-action@v1
+          with:
+            host: ${{ secrets.DEPLOY_HOST }}
+            username: ${{ secrets.DEPLOY_USER }}
+            key: ${{ secrets.DEPLOY_SSH_KEY }}
+            # Names the env vars below that get forwarded into the SSH session.
+            # Without this line they exist on the runner but not on the server.
+            envs: GHCR_TOKEN,GHCR_ACTOR
+            script: |
+                cd /home/ubuntu/ascii-art-web
+                # The server needs to authenticate to pull from GHCR, since the
+                # package is private while the repo is private.
+                echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+                # Fetch the newly published app and nginx images.
+                docker compose pull
+                # Recreate any container whose image changed. Containers whose
+                # image is unchanged are left running.
+                docker compose up -d
+                # Don't leave credentials sitting in ~/.docker/config.json.
+                docker logout ghcr.io
+                # Delete the images the new ones replaced, so the disk doesn't fill.
+                docker image prune -f
+          env:
+            GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GHCR_ACTOR: ${{ github.actor }}
