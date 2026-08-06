@@ -1,0 +1,36 @@
+name: Build and push images
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    # Allow runner to check out code
+    contents: read
+    # Allow runner to push images to GHCR under my account
+    packages: write
+
+jobs:
+    test:
+        # Pick machine type
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              # Pulls code into the machine
+              uses: actions/checkout@v6
+
+            - name: Set up Go
+              #Installs go into the machine
+              uses: actions/setup-go@v6
+              with:
+                #Installs whatever go version is in the projects go.mod file
+                go-version-file: go.mod
+                # No downloaded modules, nothing to cache, project only uses standard library
+                cache: false
+
+            - name: Run go vet
+              run: go vet ./...
+
+            - name: Run unit tests
+              run: go test ./...
