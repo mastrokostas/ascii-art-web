@@ -57,3 +57,97 @@ jobs:
                 username: ${{ github.actor }}
                 # Automatic per-run token, GitHube injects it, this is where packages: write permission gets used
                 password: ${{ secrets.GITHUB_TOKEN }}
+            
+            # Works out what the image should be called and which tags it gets.
+            # Builds nothing — it only produces text that the next step reads.
+            - name: Compute app tags
+              # Label for this step, so the build step below can reach its output.
+              id: meta_app
+              uses: docker/metadata-action@v6
+              with:
+                # github.repository is "mastrokostas/ascii-art-web", so this
+                # resolves to ghcr.io/mastrokostas/ascii-art-web, the exact
+                # name docker-compose.yml already pulls.
+                images: ghcr.io/${{ github.repository }}
+                tags: |
+                    # Tag "latest", but only on the default branch (main).
+                    type=raw,value=latest,enable={{is_default_branch}}
+                    # Also tag with the commit hash, e.g. sha-a1b2c3d, so every
+                    # build stays addressable by the commit it came from.
+                    type=sha
+
+            # Builds the app image and uploads it to GHCR.
+            - name: Build and push app
+              uses: docker/build-push-action@v7
+              with:
+                # Build context: the repo root, where the app Dockerfile lives.
+                context: .
+                # Upload after building, rather than leaving it on the runner.
+                push: true
+                # The two tag lines produced by the step above.
+                tags: ${{ steps.meta_app.outputs.tags }}
+                # Metadata baked into the image (source repo, commit, build time).
+                labels: ${{ steps.meta_app.outputs.labels }}
+                # Speed only. Restore layers saved by earlier runs so unchanged
+                # build steps are reused instead of redone.
+                cache-from: type=gha,scope=app
+                # Save this run's layers for next time. mode=max keeps every
+                # layer, not just the final one. scope=app keeps this cache
+                # separate from the nginx image's cache.
+                cache-to: type=gha,mode=max,scope=app
+
+            # Same idea as above, but for the nginx image.
+            - name: Compute nginx tags
+              id: meta_nginx
+              uses: docker/metadata-action@v6
+              with:
+                # Note the "/nginx" on the end: this resolves to
+                # ghcr.io/mastrokostas/ascii-art-web/nginx, matching the
+                # nginx service in docker-compose.yml.
+                images: ghcr.io/${{ github.repository }}/nginx
+                tags: |
+                    type=raw,value=latest,enable={{is_default_branch}}
+                    type=sha
+
+            - name: Build and push nginx
+              uses: docker/build-push-action@v7
+              with:
+                # Build context is the nginx/ folder, where its Dockerfile and
+                # nginx.conf live. The Dockerfile does "COPY nginx.conf ...",
+                # which only resolves if the context is that folder.
+                context: ./nginx
+                push: true
+                # Reads from meta_nginx, not meta_app.
+                tags: ${{ steps.meta_nginx.outputs.tags }}
+                labels: ${{ steps.meta_nginx.outputs.labels }}
+                # scope=nginx, so this cache stays separate from the app's.
+                cache-from: type=gha,scope=nginx
+                cache-to: type=gha,mode=max,scope=nginx
+
+    smoke-test:
+        # Only runs if the images were built and pushed successfully.
+        needs: build-and-push
+        runs-on: ubuntu-latest
+        steps:
+        # Needed so we can log in and pull the image we just published.
+        - name: Log in to GHCR
+          run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+        - name: Run app image and smoke test it
+          run: |
+            # Start the published image on the runner. Port 8081 on the host
+            # maps to 8080 inside, which is where the Go app listens.
+            docker run -d --name ascii_art_web_smoke -p 8081:8080 ghcr.io/${{ github.repository }}:latest
+
+            # The container takes a moment to start listening. Try once a
+            # second for ten seconds, stop as soon as a request succeeds.
+            for _ in $(seq 1 10); do curl -sf http://localhost:8081/ >/dev/null && break; sleep 1; done
+
+            # Actual checks: the home page must return 200.
+            curl -sf http://localhost:8081/ >/dev/null
+
+            # A nonexistent path must return 404, not 200 and not a crash.
+            test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/does-not-exist)" = "404"
+
+            # Clean up so the step's exit code is the only thing that matters.
+            docker rm -f ascii_art_web_smoke
