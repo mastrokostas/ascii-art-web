@@ -42,6 +42,7 @@ func main() {
 		port = port_override
 	}
 
+	// Custom server as opposed to http generic server
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      middleware.SecureHeaders(mux),
