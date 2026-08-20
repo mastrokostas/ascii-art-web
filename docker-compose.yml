@@ -10,6 +10,9 @@ services:
     # only; containers on the same network can reach each other regardless.
     expose:
       - "8080"
+    # Add the logs bind mount
+    volumes:
+      - ./logs:/app/logs
 
   nginx: 
     image: ghcr.io/mastrokostas/ascii-art-web/nginx:latest
