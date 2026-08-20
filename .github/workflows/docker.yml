@@ -143,6 +143,8 @@ jobs:
             # second for ten seconds, stop as soon as a request succeeds.
             for _ in $(seq 1 10); do curl -sf http://localhost:8081/ >/dev/null && break; sleep 1; done
 
+            docker logs ascii_art_web_smoke
+            
             # Actual checks: the home page must return 200.
             curl -sf http://localhost:8081/ >/dev/null
 
