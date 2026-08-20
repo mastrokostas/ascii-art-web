@@ -3,13 +3,18 @@ package main
 import (
 	"ascii-art-web/internal/handlers"
 	"ascii-art-web/middleware"
-	"log/slog"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
 func main() {
+
+	logFile := initLog()
+	defer logFile.Close()
+
 	mux := http.NewServeMux()
 
 	// Route GET / to the home handler — serves the form page
@@ -51,11 +56,30 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	slog.Info("Listening on http://localhost:" + port)
+	log.Println("Listening on http://localhost:" + port)
 
 	server_error := server.ListenAndServe()
 	if server_error != nil {
-		slog.Error("server stopped", "error", server_error)
+		log.Printf("server stopped: %v", server_error)
 		os.Exit(1)
 	}
+}
+
+func initLog() *os.File {
+	// Check the logs directory
+	err := os.MkdirAll("logs", 0o755)
+	if err != nil {
+		log.Fatalf("Error opening the log directory: %v", err)
+	}
+	// Open (or create) the log file in append mode so past records are kept.
+	logFile, err := os.OpenFile("logs/server.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		log.Fatalf("Error opening log file: %v", err)
+	}
+	//Write every log line to server.log & terminal
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(multiWriter)
+	log.SetFlags(log.Ldate | log.Ltime)
+
+	return logFile
 }

@@ -5,3 +5,6 @@ certs/
 
 # Compiled binary produced by "go build -o ascii-art-web ."
 ascii-art-web
+
+# Ignore development server logs
+logs/
